@@ -1,0 +1,24 @@
+{
+  "name": "atlas-treasury",
+  "version": "1.0.0",
+  "description": "PayPal-native treasury for a company run by AI agents: agents earn, spend within budgets, and every out-of-policy payment waits for one tap from the human owner.",
+  "type": "module",
+  "license": "MIT",
+  "private": true,
+  "engines": {
+    "node": ">=22.5"
+  },
+  "scripts": {
+    "start": "node --env-file-if-exists=.env src/server.js",
+    "dev": "node --watch --env-file-if-exists=.env src/server.js",
+    "test": "node --test --no-warnings=ExperimentalWarning test/*.test.js",
+    "seed": "node --env-file-if-exists=.env src/seed.js",
+    "setup:webhook": "node --env-file-if-exists=.env src/setup-webhook.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.3.0",
+    "@hono/node-server": "^2.1.5",
+    "hono": "^4.13.14",
+    "qrcode": "^1.5.4"
+  }
+}

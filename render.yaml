@@ -1,0 +1,28 @@
+# Render blueprint: free web service, no disk (SQLite lives in the container and is re-seeded on restart - fine for a sandbox demo).
+services:
+  - type: web
+    name: atlas-treasury
+    runtime: docker
+    plan: free
+    healthCheckPath: /api/health
+    envVars:
+      - key: DEMO_MODE
+        value: "1"
+      - key: PAYPAL_API
+        value: https://api-m.sandbox.paypal.com
+      - key: DB_PATH
+        value: /tmp/treasury.db
+      - key: PUBLIC_URL
+        sync: false
+      - key: PAYPAL_CLIENT_ID
+        sync: false
+      - key: PAYPAL_CLIENT_SECRET
+        sync: false
+      - key: PAYPAL_WEBHOOK_ID
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: SANDBOX_VENDOR_EMAILS
+        sync: false
+      - key: ADMIN_TOKEN
+        generateValue: true
