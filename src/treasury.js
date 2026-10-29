@@ -179,8 +179,11 @@ export async function executePayout(ctx, spendRequestId, decidedBy) {
 /** Called by webhook handler and reconciler. Idempotent. */
 export function settlePayout(ctx, spendRequestId, outcome, { itemId = null, reason = null } = {}) {
   const sr = one(ctx.db, 'SELECT * FROM spend_requests WHERE id=?', spendRequestId);
-  if (!sr || sr.status === 'paid' || (sr.status === 'failed' && outcome === 'failed')) return false;
-  if (outcome === 'paid') {
+  if (!sr || sr.status === 'paid' || sr.status === outcome) return false;
+  if (outcome === 'unclaimed') {
+    update(ctx.db, 'spend_requests', sr.id, { status: 'unclaimed', payout_item_id: itemId || sr.payout_item_id, failure_reason: reason });
+    run(ctx.db, "UPDATE ledger SET status='unclaimed' WHERE spend_request_id=? AND kind='spend'", sr.id);
+  } else if (outcome === 'paid') {
     update(ctx.db, 'spend_requests', sr.id, { status: 'paid', payout_item_id: itemId || sr.payout_item_id });
     run(ctx.db, "UPDATE ledger SET status='completed' WHERE spend_request_id=? AND kind='spend'", sr.id);
   } else {

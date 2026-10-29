@@ -31,6 +31,7 @@ export async function reconcile(ctx) {
         if (!srId) continue;
         const st = item.transaction_status;
         if (st === 'SUCCESS' && settlePayout(ctx, srId, 'paid', { itemId: item.payout_item_id })) result.payouts += 1;
+        else if (st === 'UNCLAIMED' && settlePayout(ctx, srId, 'unclaimed', { itemId: item.payout_item_id, reason: item.errors?.message || st })) result.payouts += 1;
         else if (['FAILED', 'RETURNED', 'BLOCKED', 'REFUNDED', 'REVERSED'].includes(st) && settlePayout(ctx, srId, 'failed', { itemId: item.payout_item_id, reason: item.errors?.message || st })) result.payouts += 1;
       }
     });

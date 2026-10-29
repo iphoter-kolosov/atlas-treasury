@@ -80,6 +80,18 @@ test('payout item events settle the spend request via sender_item_id; failure fr
   assert.equal(one(ctx.db, "SELECT status FROM ledger WHERE spend_request_id=?", sr2.id).status, 'failed');
 });
 
+test('UNCLAIMED keeps the payout as money out (held by PayPal 30 days), not a failure; RETURNED later fails it', async () => {
+  const ctx = makeCtx({ paypal: fakePayPal() });
+  await createSpendRequest(ctx, 'vega', 'task_launch_video', spendInput({ amount_usd: 45, category: 'voice' }));
+  const sr = one(ctx.db, 'SELECT approval_token AS token, id FROM spend_requests');
+  await decideApproval(ctx, sr.token, 'approve');
+  await send(ctx, ev('WH-U1', 'PAYMENT.PAYOUTS-ITEM.UNCLAIMED', { payout_item_id: 'PI-U', sender_item_id: sr.id }));
+  assert.equal(one(ctx.db, 'SELECT status FROM spend_requests').status, 'unclaimed');
+  assert.equal(one(ctx.db, 'SELECT status FROM ledger').status, 'unclaimed');
+  await send(ctx, ev('WH-U2', 'PAYMENT.PAYOUTS-ITEM.RETURNED', { payout_item_id: 'PI-U', sender_item_id: sr.id }));
+  assert.equal(one(ctx.db, 'SELECT status FROM spend_requests').status, 'failed');
+});
+
 test('PAYOUTSBATCH.DENIED fails every request in the batch; reconciler settles payouts from batch items', async () => {
   const pp = fakePayPal();
   const ctx = makeCtx({ paypal: pp });

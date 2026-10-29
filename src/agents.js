@@ -74,6 +74,8 @@ export const TREASURER_TOOLS = [
   AGENT_TOOLS.find((t) => t.name === 'query_ledger'),
   { name: 'get_budget', description: 'Budget snapshot for one agent.', input_schema: obj({ agent_id: { type: 'string' } }, ['agent_id']) },
   { name: 'list_tasks', description: 'All tasks with status, price and result.', input_schema: obj({}) },
+  // Sent-but-unpaid invoices are receivables, not ledger rows yet; without this the treasurer cannot answer "what is owed to us".
+  { name: 'list_invoices', description: 'All PayPal invoices with status (sent/paid/cancelled), amount, task and PayPal invoice number.', input_schema: obj({}) },
 ];
 
 // ---- tool implementations ----------------------------------------------------------------
@@ -201,6 +203,7 @@ export async function askTreasurer(ctx, question) {
     query_ledger: (f) => queryLedger(ctx, f),
     get_budget: ({ agent_id }) => budgetSnapshot(ctx, agent_id),
     list_tasks: () => all(ctx.db, 'SELECT id,title,agent_id,client_name,status,price_cents,result_summary,result_url FROM tasks'),
+    list_invoices: () => all(ctx.db, 'SELECT id,task_id,agent_id,paypal_invoice_number,amount_cents,currency,status,reminders,created_at,paid_at FROM invoices ORDER BY created_at DESC'),
   };
   const system = `You are the Treasurer of Atlas Corp. Answer the owner's questions about money using ONLY tool results (amounts are integer cents; show dollars).
 Cite the ledger rows you rely on as [led_xxxx] using their exact ids, and name the task and result each payment produced. If the data does not answer the question, say so. Be brief.`;

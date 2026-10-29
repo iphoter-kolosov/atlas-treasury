@@ -31,14 +31,14 @@ export async function overview(root, rerender) {
   const kpi = (label, value, hint, cls = '', href) => h(href ? 'a' : 'div', { class: `card kpi ${cls}`, href }, h('div', { class: 'label' }, label), h('div', { class: 'value' }, value), h('div', { class: 'hint' }, hint));
   root.append(
     head('Overview', 'Agents earn through PayPal, spend inside budgets, and you sign what is out of policy.'),
-    health.demo_mode && !health.paypal.configured ? h('div', { class: 'banner' }, 'Demo data is shown because PayPal and Claude keys are not configured. Money and AI actions answer with a clear "not configured" error instead of pretending.') : null,
+    health.demo_mode && !health.paypal.configured ? h('div', { class: 'banner' }, 'Demo data is shown because PayPal and Claude keys are not configured. Money and AI actions answer with a clear "not configured" error instead of pretending.') : '',
     h('div', { class: 'grid kpis' },
       kpi('Earned this month', usd(ov.earned_cents), 'invoices and checkout', 'pos'),
       kpi('Spent', usd(ov.spent_cents), 'payouts to vendors', 'neg'),
       kpi('Net', usd(ov.net_cents), 'earned - refunds - spent', ov.net_cents >= 0 ? 'pos' : 'neg'),
       kpi('Waiting for you', String(ov.pending_approvals), 'approvals', ov.pending_approvals ? 'warm' : '', '#/approvals'),
       kpi('Open disputes', String(ov.open_disputes), 'needs a human call', '', '#/disputes')),
-    pending.length ? h('section', { class: 'block' }, h('h2', {}, 'Waiting for your tap'), h('div', { class: 'grid' }, pending.slice(0, 2).map((c) => approvalCard(c, { onDone: rerender })))) : null,
+    pending.length ? h('section', { class: 'block' }, h('h2', {}, 'Waiting for your tap'), h('div', { class: 'grid' }, pending.slice(0, 2).map((c) => approvalCard(c, { onDone: rerender })))) : '',
     h('section', { class: 'block' }, h('h2', {}, 'Agents'), h('div', { class: 'grid agents' }, ov.agents.map((a) => agentCard(a, rerender)))),
     h('section', { class: 'block' }, h('h2', {}, 'Tasks'), tasksTable(tasks, ov.agents, rerender)));
 }
@@ -204,7 +204,7 @@ export async function disputes(root, rerender) {
 export async function timelineView(root) {
   const runs = await api('/api/runs');
   root.append(head('Agent timeline', 'What each agent did, tool call by tool call. The model only ever calls these tools.'),
-    runs.length ? runs.map(runCard) : h('div', { class: 'card' }, emptyState('No agent runs yet. Give an agent an instruction on the Overview.')));
+    ...(runs.length ? runs.map(runCard) : [ h('div', { class: 'card' }, emptyState('No agent runs yet. Give an agent an instruction on the Overview.'))]));
 }
 
 // ================= Audit =================

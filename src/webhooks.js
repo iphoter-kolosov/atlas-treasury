@@ -29,8 +29,12 @@ export function applyEvent(ctx, event) {
       return recordRefund(ctx, { refundId: r.id, captureId: upLink(r), amountCents: toCents(r.amount.value) });
     case 'PAYMENT.PAYOUTS-ITEM.SUCCEEDED':
       return settlePayout(ctx, r.payout_item?.sender_item_id || r.sender_item_id, 'paid', { itemId: r.payout_item_id });
-    case 'PAYMENT.PAYOUTS-ITEM.FAILED':
+    // UNCLAIMED is not a failure: PayPal sent the money and holds it 30 days for a recipient without an account.
     case 'PAYMENT.PAYOUTS-ITEM.UNCLAIMED':
+      return settlePayout(ctx, r.payout_item?.sender_item_id || r.sender_item_id, 'unclaimed', {
+        itemId: r.payout_item_id, reason: r.errors?.message || 'Recipient has no PayPal account yet; PayPal holds the funds for 30 days.',
+      });
+    case 'PAYMENT.PAYOUTS-ITEM.FAILED':
     case 'PAYMENT.PAYOUTS-ITEM.RETURNED':
       return settlePayout(ctx, r.payout_item?.sender_item_id || r.sender_item_id, 'failed', {
         itemId: r.payout_item_id, reason: r.errors?.message || event.event_type,
