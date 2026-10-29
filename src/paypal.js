@@ -130,7 +130,8 @@ export function createPayPalClient({ clientId, clientSecret, baseUrl, fetchImpl 
         sender_batch_header: { sender_batch_id: senderBatchId, email_subject: emailSubject },
         items: items.map((i) => ({
           recipient_type: 'EMAIL', receiver: i.receiver, note: i.note, sender_item_id: i.senderItemId,
-          amount: { currency: i.currency || 'USD', value: fromCents(i.amountCents) },
+          // `value` lets the caller send an already-converted settlement amount (e.g. whole forints) verbatim.
+          amount: { currency: i.currency || 'USD', value: i.value ?? fromCents(i.amountCents) },
         })),
       }, { requestId: senderBatchId }),
     getPayoutBatch: (batchId) => request('GET', `/v1/payments/payouts/${batchId}`),

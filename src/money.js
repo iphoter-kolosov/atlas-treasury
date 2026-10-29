@@ -14,3 +14,18 @@ export function toCents(usd) {
 export const fromCents = (cents) => (cents / 100).toFixed(2);
 export const fmtUsd = (cents) =>
   `${cents < 0 ? '-' : ''}$${(Math.abs(cents) / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+// PayPal currencies that have no minor unit: amounts must be whole numbers.
+const ZERO_DECIMAL = new Set(['HUF', 'JPY', 'TWD']);
+
+/**
+ * Convert a USD amount (cents) into the merchant's settlement currency for a payout.
+ * Returns {currency, value} where value is the exact string PayPal expects.
+ */
+export function settlementAmount(cents, settlement) {
+  if (!settlement?.currency || settlement.currency === 'USD') return { currency: 'USD', value: fromCents(cents) };
+  if (!(settlement.fxRate > 0)) throw new Error(`No FX rate configured for settlement in ${settlement.currency}`);
+  const units = (cents / 100) * settlement.fxRate;
+  const value = ZERO_DECIMAL.has(settlement.currency) ? String(Math.round(units)) : units.toFixed(2);
+  return { currency: settlement.currency, value };
+}

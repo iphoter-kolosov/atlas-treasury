@@ -33,7 +33,7 @@ test('approve -> payout executes with sender_item_id, ledger spend is pending, b
   const card = await decideApproval(ctx, token, 'approve', 'ok');
   assert.equal(card.state, 'approved');
   const payout = pp.calls.find((c) => c.name === 'createPayout');
-  assert.deepEqual(payout.args[0][0], { receiver: 'gpu@example.com', amountCents: 4500, currency: 'USD', senderItemId: id, note: payout.args[0][0].note });
+  assert.deepEqual(payout.args[0][0], { receiver: 'gpu@example.com', amountCents: 4500, currency: 'USD', value: '45.00', senderItemId: id, note: payout.args[0][0].note });
   assert.equal(payout.args[1], `atlas-${id}`);
   const led = one(ctx.db, 'SELECT * FROM ledger');
   assert.equal(led.kind, 'spend');

@@ -23,6 +23,12 @@ export function loadConfig(env = process.env) {
     approvalWebhookUrl: env.APPROVAL_WEBHOOK_URL || '',
     sandboxVendorEmails: (env.SANDBOX_VENDOR_EMAILS || '').split(',').map((s) => s.trim()).filter(Boolean),
     currency: 'USD',
+    // The merchant account's own currency. PayPal converts incoming USD into it, and payouts must be sent in it
+    // (a HUF-primary account rejects USD payouts with "insufficient funds"). Empty = same as `currency`.
+    settlement: {
+      currency: (env.SETTLEMENT_CURRENCY || '').toUpperCase(),
+      fxRate: Number(env.SETTLEMENT_FX_RATE || 0), // units of settlement currency per 1 USD
+    },
   };
 }
 
@@ -38,6 +44,9 @@ export function validateConfig(cfg) {
   }
   if (!Number.isFinite(cfg.port) || cfg.port <= 0) problems.push('PORT must be a positive number');
   if (!cfg.paypal.api.startsWith('https://')) problems.push('PAYPAL_API must be an https:// URL');
+  if (cfg.settlement.currency && cfg.settlement.currency !== cfg.currency && !(cfg.settlement.fxRate > 0)) {
+    problems.push('SETTLEMENT_FX_RATE (> 0) is required when SETTLEMENT_CURRENCY differs from USD');
+  }
   return problems;
 }
 

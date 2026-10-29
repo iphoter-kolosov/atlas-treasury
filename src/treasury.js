@@ -4,7 +4,7 @@
 import { all, insert, monthStartIso, newToken, nowIso, one, run, uid, update } from './db.js';
 import { NotConfiguredError } from './config.js';
 import { evaluate } from './policy.js';
-import { MAX_REQUEST_CENTS, fmtUsd, toCents } from './money.js';
+import { MAX_REQUEST_CENTS, fmtUsd, settlementAmount, toCents } from './money.js';
 
 export const APPROVAL_TTL_MS = 48 * 3600 * 1000;
 export const DEFAULT_DENYLIST = []; // extend via env later; kept explicit so the policy input is visible
@@ -153,8 +153,10 @@ export async function executePayout(ctx, spendRequestId, decidedBy) {
   const paypal = requirePaypal(ctx);
   if (sr.payout_batch_id) return sr; // already submitted; idempotent
   try {
+    // Budgets and policy stay in USD; only the wire amount is converted to what the merchant account actually holds.
+    const wire = settlementAmount(sr.amount_cents, ctx.config.settlement);
     const batch = await paypal.createPayout([{
-      receiver: sr.vendor_email, amountCents: sr.amount_cents, currency: sr.currency, senderItemId: sr.id,
+      receiver: sr.vendor_email, amountCents: sr.amount_cents, currency: wire.currency, value: wire.value, senderItemId: sr.id,
       note: `${sr.vendor_name}: ${sr.justification}`.slice(0, 200),
     }], `atlas-${sr.id}`);
     const batchId = batch.batch_header.payout_batch_id;
@@ -165,7 +167,7 @@ export async function executePayout(ctx, spendRequestId, decidedBy) {
       kind: 'spend', amount_cents: -sr.amount_cents, agent_id: sr.agent_id, task_id: sr.task_id, spend_request_id: sr.id,
       paypal_ref_type: 'payout', paypal_ref_id: batchId, status: 'pending', memo: `${sr.vendor_name} - ${sr.justification}`.slice(0, 300),
     });
-    logEvent(ctx, 'agent', 'payout.submitted', { spend_request_id: sr.id, batch_id: batchId, batch_status: batch.batch_header.batch_status }, { refs: [sr.id, batchId, sr.task_id] });
+    logEvent(ctx, 'agent', 'payout.submitted', { spend_request_id: sr.id, batch_id: batchId, batch_status: batch.batch_header.batch_status, wire_currency: wire.currency, wire_value: wire.value }, { refs: [sr.id, batchId, sr.task_id] });
   } catch (e) {
     update(ctx.db, 'spend_requests', sr.id, { status: 'failed', failure_reason: e.message.slice(0, 500), decided_by: sr.decided_by || decidedBy, decided_at: sr.decided_at || nowIso() });
     logEvent(ctx, 'agent', 'payout.failed', { spend_request_id: sr.id, error: e.message, debug_id: e.debugId }, { refs: [sr.id] });
