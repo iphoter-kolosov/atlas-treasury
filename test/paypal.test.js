@@ -154,3 +154,25 @@ test('ensureWebhook returns the existing hook or creates one', async () => {
   assert.deepEqual(await pp.ensureWebhook('https://t/webhooks/paypal', ['A', 'B']), { id: 'WH-NEW', created: true });
   assert.deepEqual(fetchImpl.calls.at(-1).body.event_types, [{ name: 'A' }, { name: 'B' }]);
 });
+
+test('a 403 NOT_AUTHORIZED drops the cached token and retries once with a fresh one (scopes added after issue)', async () => {
+  let tokens = 0; let calls = 0;
+  const fetchImpl = async (url) => {
+    if (url.endsWith('/v1/oauth2/token')) { tokens += 1; return new Response(JSON.stringify({ access_token: `T${tokens}`, expires_in: 32400 }), { status: 200 }); }
+    calls += 1;
+    if (calls === 1) return new Response(JSON.stringify({ name: 'NOT_AUTHORIZED', message: 'insufficient permissions' }), { status: 403 });
+    return new Response(JSON.stringify({ items: [] }), { status: 200 });
+  };
+  const pp = createPayPalClient({ clientId: 'x', clientSecret: 'y', baseUrl: 'https://api.test', fetchImpl });
+  await pp.getInvoice('I');
+  assert.equal(tokens, 2);
+  assert.equal(calls, 2);
+});
+
+test('a persistent 403 is still reported after the single retry', async () => {
+  const fetchImpl = async (url) => (url.endsWith('/v1/oauth2/token')
+    ? new Response(JSON.stringify({ access_token: 'T', expires_in: 32400 }), { status: 200 })
+    : new Response(JSON.stringify({ name: 'NOT_AUTHORIZED', message: 'insufficient permissions' }), { status: 403 }));
+  const pp = createPayPalClient({ clientId: 'x', clientSecret: 'y', baseUrl: 'https://api.test', fetchImpl });
+  await assert.rejects(pp.getInvoice('I'), /403/);
+});

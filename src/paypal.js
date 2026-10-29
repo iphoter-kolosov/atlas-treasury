@@ -40,7 +40,7 @@ export function createPayPalClient({ clientId, clientSecret, baseUrl, fetchImpl 
     return token.value;
   }
 
-  async function request(method, path, body, { requestId } = {}) {
+  async function request(method, path, body, { requestId } = {}, retried = false) {
     const headers = { Authorization: `Bearer ${await accessToken()}`, 'Content-Type': 'application/json', Accept: 'application/json' };
     if (method === 'POST') headers['PayPal-Request-Id'] = requestId || randomUUID();
     const res = await fetchImpl(`${base}${path}`, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
@@ -48,6 +48,12 @@ export function createPayPalClient({ clientId, clientSecret, baseUrl, fetchImpl 
     let data = null;
     if (text) {
       try { data = JSON.parse(text); } catch { data = { raw: text }; }
+    }
+    // A token keeps the scopes it was issued with for ~9 h. When an app feature (e.g. Invoicing) is enabled later,
+    // the cached token answers 401/403 until it expires; fetch a fresh one once instead of failing for hours.
+    if ((res.status === 401 || (res.status === 403 && data?.name === 'NOT_AUTHORIZED')) && !retried) {
+      token = null;
+      return request(method, path, body, { requestId: headers['PayPal-Request-Id'] }, true);
     }
     if (!res.ok) {
       // The top-level message is generic ("not well-formed"); the field-level issues are what an agent or human can act on.
