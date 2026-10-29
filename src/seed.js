@@ -4,6 +4,7 @@
 
 import { pathToFileURL } from 'node:url';
 import { insert, newToken, nowIso, one, uid } from './db.js';
+import { paypalConfigured } from './config.js';
 
 const FALLBACK_VENDOR = 'vendor@example.com';
 
@@ -25,7 +26,8 @@ export function seed(db, config) {
   ];
   tasks.forEach((t) => insert(db, 'tasks', { ...t, status: 'open', created_at: nowIso() }, { ignore: true }));
 
-  if (config.demoMode && one(db, 'SELECT COUNT(*) c FROM ledger').c === 0) seedDemoHistory(db, vendor);
+  // Sample history only for a keyless demo: with real sandbox keys it would collide with live PayPal data (agents rightly flag "duplicates").
+  if (config.demoMode && !paypalConfigured(config) && one(db, 'SELECT COUNT(*) c FROM ledger').c === 0) seedDemoHistory(db, vendor);
 }
 
 function seedDemoHistory(db, vendor) {
