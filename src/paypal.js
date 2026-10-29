@@ -116,7 +116,7 @@ export function createPayPalClient({ clientId, clientSecret, baseUrl, fetchImpl 
       const r = await request('POST', '/v2/checkout/orders', {
         intent: 'CAPTURE',
         purchase_units: [{ custom_id: taskId, invoice_id: invoiceId, description, amount: money(amountCents, currency) }],
-        payment_source: { paypal: { experience_context: { return_url: returnUrl, cancel_url: cancelUrl, user_action: 'PAY_NOW', shipping_preference: 'NO_SHIPPING' } } },
+        payment_source: { paypal: { experience_context: { return_url: returnUrl, cancel_url: cancelUrl, brand_name: 'Atlas Treasury', user_action: 'PAY_NOW', shipping_preference: 'NO_SHIPPING' } } },
       }, { requestId });
       const link = (r.links || []).find((l) => l.rel === 'payer-action' || l.rel === 'approve');
       return { id: r.id, status: r.status, approveUrl: link?.href || null };
