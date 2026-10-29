@@ -50,7 +50,9 @@ export function createPayPalClient({ clientId, clientSecret, baseUrl, fetchImpl 
       try { data = JSON.parse(text); } catch { data = { raw: text }; }
     }
     if (!res.ok) {
-      throw new PayPalError(`PayPal ${method} ${path} -> ${res.status}: ${data?.message || data?.name || 'error'}`, {
+      // The top-level message is generic ("not well-formed"); the field-level issues are what an agent or human can act on.
+      const issues = (data?.details || []).map((d) => [d.field, d.issue, d.description].filter(Boolean).join(' ')).join('; ');
+      throw new PayPalError(`PayPal ${method} ${path} -> ${res.status}: ${data?.message || data?.name || 'error'}${issues ? ` (${issues})` : ''}`, {
         status: res.status,
         debugId: data?.debug_id || res.headers?.get?.('paypal-debug-id'),
         details: data?.details,
@@ -79,7 +81,8 @@ export function createPayPalClient({ clientId, clientSecret, baseUrl, fetchImpl 
           invoice_date: new Date(now()).toISOString().slice(0, 10),
           currency_code: currency,
           note,
-          payment_term: { term_type: `NET_${dueInDays}` },
+          // PayPal only accepts fixed NET_10/15/30/45/60/90 terms, so an arbitrary "due in N days" becomes an explicit due date.
+          payment_term: { term_type: 'DUE_ON_DATE_SPECIFIED', due_date: new Date(now() + dueInDays * 86_400_000).toISOString().slice(0, 10) },
         },
         primary_recipients: [{ billing_info: { email_address: client.email, name: { given_name: given, surname: rest.join(' ') || '-' } } }],
         items: items.map((i) => ({ name: i.name, quantity: String(i.quantity ?? 1), unit_amount: money(i.unit_amount_cents, currency) })),

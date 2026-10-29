@@ -86,7 +86,9 @@ test('createInvoice builds the v2 invoicing payload and extracts the id from hre
   assert.equal(r.id, 'INV2-XYZ');
   const b = fetchImpl.calls.find((c) => c.key === 'POST /v2/invoicing/invoices').body;
   assert.equal(b.detail.invoice_number, '0007');
-  assert.equal(b.detail.payment_term.term_type, 'NET_14');
+  // NET_14 is not a valid PayPal term (caught live against the sandbox 29.10.2026); an explicit due date is.
+  assert.equal(b.detail.payment_term.term_type, 'DUE_ON_DATE_SPECIFIED');
+  assert.match(b.detail.payment_term.due_date, /^\d{4}-\d{2}-\d{2}$/);
   assert.equal(b.primary_recipients[0].billing_info.email_address, 'ada@example.com');
   assert.deepEqual(b.primary_recipients[0].billing_info.name, { given_name: 'Ada', surname: 'Lovelace' });
   assert.deepEqual(b.items[0], { name: 'Video', quantity: '2', unit_amount: { currency_code: 'USD', value: '500.00' } });
