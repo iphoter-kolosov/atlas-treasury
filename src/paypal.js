@@ -15,6 +15,7 @@ export class PayPalError extends Error {
   }
 }
 
+const INVOICER_NAME = 'Atlas Treasury';
 const idFromHref = (href) => String(href || '').split('/').filter(Boolean).pop();
 
 export function createPayPalClient({ clientId, clientSecret, baseUrl, fetchImpl = globalThis.fetch, now = Date.now } = {}) {
@@ -90,6 +91,8 @@ export function createPayPalClient({ clientId, clientSecret, baseUrl, fetchImpl 
           // PayPal only accepts fixed NET_10/15/30/45/60/90 terms, so an arbitrary "due in N days" becomes an explicit due date.
           payment_term: { term_type: 'DUE_ON_DATE_SPECIFIED', due_date: new Date(now() + dueInDays * 86_400_000).toISOString().slice(0, 10) },
         },
+        // Without an invoicer block the sandbox shows its default merchant name ("Test Store") to the client.
+        invoicer: { business_name: INVOICER_NAME },
         primary_recipients: [{ billing_info: { email_address: client.email, name: { given_name: given, surname: rest.join(' ') || '-' } } }],
         items: items.map((i) => ({ name: i.name, quantity: String(i.quantity ?? 1), unit_amount: money(i.unit_amount_cents, currency) })),
       };
