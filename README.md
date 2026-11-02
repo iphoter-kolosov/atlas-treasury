@@ -8,6 +8,8 @@ Agents *earn* (PayPal Invoicing, Orders checkout), *spend* inside budgets (PayPa
 
 Sandbox only - it never touches real money. MIT licensed.
 
+**Video (3 min):** https://youtu.be/RL5RwFmiSlc  ·  **Built in 4 days** by a team of AI agents with a human architect - want your own prototype shipped like this? [Prototype → production in 5 days](https://contra.com/s/bYrAsPqo-vibe-coded-prototype-production-ready-app-in-5-days)
+
 ## Judge's tour (60 seconds, no install)
 
 Live sandbox stand: **https://treasury.ihor.work** (PayPal sandbox + Claude configured; no real money).
